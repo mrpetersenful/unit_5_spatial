@@ -43,7 +43,7 @@ library(raster)
 ###
 # read in MODIS-Aqua data (NetCDF file)
 # This file is the monthly climatology of chloropphyl for July (Julian dates 182-212) generated from years 2002 - 2017
-chl_raw = nc_open('data/A20021822017212.L3m_MC_CHL_chlor_a_4km.nc')
+chl_raw = nc_open('data/A20021822017212.L3m_MC_CHL_chlor_a_4km.nc') # chl_a in mg/m^3
 
 # convert to raster using oceanmap library
 chl_raw_raster = nc2raster(nc=chl_raw, varname="chlor_a", lonname="lon", latname="lat", date=T)
@@ -145,7 +145,7 @@ ggplot()+
 
 
 ##############################################################
-#     Combine bathymetry and chlorophyl rasters
+#     Combine bathymetry and chlorophyll rasters
 ##############################################################
 
 # convert bathymetry to raster
@@ -174,6 +174,22 @@ head(stack_df)
 
 range(stack_df$chl_a, na.rm=TRUE)
 summary(stack_df)
+
+dim(stack_df)
+
+# O'Reilly et al. 2019
+# chl_a benchmarks for oligo- meso- and eutrophic ocean waters derived from SeaWiFS data
+oligo_chl_a = 0.1 # mg/m^3
+eutro_chl_a = 1.67 # mg/m^3
+
+eutro_chl = stack_df %>% filter(chl_a > eutro_chl_a) # high chl: 10 mg/m^3
+dim(eutro_chl)
+median(eutro_chl$bath_m)
+
+summary(stack_df)
+
+oligo_chl = stack_df %>% filter(chl_a < oligo_chl_a)
+dim(oligo_chl) # no oligotrophic waters in GOM
 
 
 
