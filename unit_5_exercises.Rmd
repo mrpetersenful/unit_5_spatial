@@ -1,0 +1,71 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.asp = 0.618, collapse=TRUE) 
+```
+
+### In-class exercises
+### Unit 5: Spatial
+
+***
+
+### Exercise 1.1
+
+Add bathymetric contour lines to the colored bathymetry raster map of the Gulf of Maine. Draw the contours at 50m, 250m and 1000m depths. Are there any basins in the GOM that go as deep as 1000m?
+
+```{r, eval=FALSE}
+# plot contours
+GOM_bath_map_contours = ggplot()+
+  geom_raster(data = bath_m , aes(x = x, y = y, fill = depth_m)) + 
+  scale_fill_gradientn(colors=c("black", "darkblue", "lightblue"), 
+                       values = scales::rescale(c(-6000, -300, 0)), # rescale to make 2 different gradients
+                       name="Depth (m)") +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-50), size=c(0.25), colour="black") + # add 100m contour
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-250), size=c(0.5), colour="black") + # add 250m contour
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-1000), size=c(0.75), colour="black") + # add 250m contour
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "black", color = NA) + # add coastline
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # Crop map edges
+  ylab("Latitude") + xlab("Longitude") + theme_classic()
+
+GOM_bath_map_contours # print to screen
+```
+
+***
+
+### Exercise 1.2
+
+Using the raster stack we created earlier, crop out Cape Cod Bay. Turn this into a data frame. How does the mean chlorophyll a concentration at depths between 0 and -50m compare to the mean chlorophyll concentration between -50 and -100m?
+
+```{r, eval=FALSE}
+CCB_lon = c(-70.8, -69.8)
+CCB_lat = c(41.6, 42.2)
+
+CCB_raster = crop(raster_stack, extent(c(CCB_lon, CCB_lat)))
+CCB_df = data.frame( raster::rasterToPoints(CCB_raster))
+
+ggplot(aes(x=chl_a), data=CCB_df) +
+  geom_histogram()
+
+# find mean chl_a between depths of 0 and 50m
+CCB_df %>%
+  filter(bath_m <=0, bath_m > -50) %>%
+  summarize(chl = mean(chl_a, na.rm=TRUE))
+# find mean chl_a between depths of 50 and 100m
+CCB_df %>%
+  filter(bath_m <= -50, bath_m > -100) %>%
+  summarize(chl = mean(chl_a, na.rm=TRUE))
+
+# plot raster data
+CCB_map = ggplot()+
+  geom_raster(data = CCB_df, aes(x = x, y = y, fill = bath_m)) + 
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "darkgrey", color = NA) + # add coastline; group keeps multipolygon coordinates separated into distinct groups
+  coord_fixed(1.3, xlim = CCB_lon, ylim = CCB_lat, expand=FALSE) + # Crop map edges
+  ylab("Lat") + xlab("Lon") + theme_bw() 
+CCB_map
+```
+
+***
+
+

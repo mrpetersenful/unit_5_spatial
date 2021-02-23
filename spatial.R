@@ -297,3 +297,5 @@ ggplot()+
   ylab("Latitude") + xlab("Longitude") + theme_classic() +
   ggsave('figures/RW_habitats.pdf', device="pdf", height=5, width=7)
 
+## How many carcass locations occur in critical habitat zones?
+
