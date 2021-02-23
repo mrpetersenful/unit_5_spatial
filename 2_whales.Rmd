@@ -1,0 +1,126 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.asp = 0.618, collapse=TRUE) 
+```
+
+### Unit 5: Spatial
+#### Lesson 2: right whale critical habitats and mortalities
+#### New packages: sf 
+#### New functions: 
+
+***
+
+### Points, lines, polygons
+
+In the last class we examined rasters, or gridded spatial data. The other way we typically deal with spatial data is through vector data, which consists of points, lines and polygons. The most common file format for passing along spatial vector data is the shapefile. 
+
+-  points: a single x,y coordinate pair (tree, city)
+-  lines: 2 or more points that are connected (stream, road)
+-  polygons: 3 or more points that form a closed shape (lake, country)
+
+![](doc/pnt_line_poly.png){width=50%}
+
+Geospatial data in vector format are often stored in a shapefile format. Because the structure of points, lines, and polygons are different, each individual shapefile can only contain one vector type (all points, all lines or all polygons). You will not find a mixture of point, line and polygon objects in a single shapefile. 
+
+Objects stored in a shapefile often have a set of associated attributes that describe the data. For example, a line shapefile that contains the locations of streams, might contain the associated stream name, and other information about each stream line object.
+
+
+
+```{r, message=FALSE}
+library(sf) # simple features pckg st_read, st_transform
+library(broom) #tidy
+library(tidyverse)
+library(mapdata)  # map_data
+```
+
+```{r}
+# set GOM + GSL map limits
+lon_bounds = c(-72, -54)
+lat_bounds = c(39, 53)
+bath_m_raw = marmap::getNOAA.bathy(lon1 = lon_bounds[1], lon2 = lon_bounds[2],
+                                   lat1 = lat_bounds[1], lat2 = lat_bounds[2], resolution = 4) # resolution default: 4 minutes
+# convert bathymetry to data frame
+bath_m_fortify = marmap::fortify.bathy(bath_m_raw) 
+bath_m = bath_m_fortify %>%
+  mutate(depth_m = ifelse(z>0, NA, z)) %>%
+  dplyr::select(-z)
+head(bath_m)
+summary(bath_m)
+
+world_map = map_data("worldHires", ylim = lat_bounds, xlim = lon_bounds)
+
+# plot bathymetry 
+ggplot()+
+  geom_raster(data = bath_m , aes(x = x, y = y, fill = depth_m)) + 
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "darkgrey", color = NA) + # add coastline
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds) + # Crop map edges
+  scale_fill_gradientn(colors=c("black", "navy", "blue4","lightblue"), 
+                       values = scales::rescale(c(-5000, -3000, -300, 0)), # rescale to make 2 different gradients
+                       name="Depth (m)") +
+  ylab("Lat") + xlab("Lon") + theme_bw() 
+
+
+##############################################################
+#     RW Critical Habitat boundaries and 2017 carcass locations
+##############################################################
+
+# Carcass location data
+carcass = read.csv('data/RW_carcasses_2017.csv')
+
+#Load in Canadian RW critical habitat coordinates http://www.dfo-mpo.gc.ca/species-especes/profiles-profils/rightwhaleNA-baleinenoireAN-eng.html
+CAN_crit_hab = read.csv('data/NARW_canadian_critical_habitat_2017.csv')
+head(CAN_crit_hab)
+
+# Turn data frame into sf points, then sf polygon
+CAN_crit_hab_sf = CAN_crit_hab %>% 
+  st_as_sf(coords=c("lon","lat"), crs='+proj=longlat +datum=WGS84') %>%
+  dplyr::group_by(habitat, country) %>% 
+  dplyr::summarise(do_union=FALSE) %>% # collapses data into multipoint; do_union=FALSE prevents reordering points
+  st_cast("POLYGON") 
+
+#Read in US critical habitat shapefiles 
+# https://www.greateratlantic.fisheries.noaa.gov/educational_resources/gis/data/index.html
+
+USA_crit_hab = st_read('data/North_Atlantic_Right_Whale_Critical_Habitat/','North_Atlantic_Right_Whale_Critical_Habitat')
+USA_crit_hab_trans = st_transform(USA_crit_hab, crs="+proj=longlat +datum=WGS84")
+USA_crit_hab_sf = fortify(USA_crit_hab_trans)
+USA_crit_hab_sf  # 2 simple features
+
+# Simply USA_crit_hab data frame to match CAN_crit_hab
+plot(USA_crit_hab_sf$geometry[1], axes=TRUE) # GOM habitat
+plot(USA_crit_hab_sf$geometry[2], axes=TRUE) # FL / GA habitat
+USA_crit_hab_sf$habitat=c("NMFS_GOM", "SEUS")
+USA_crit_hab_sf$country="USA"
+USA_crit_hab_sf = USA_crit_hab_sf %>% select(country, habitat, geometry) # drops all other variables from shapefile
+
+# Join the USA and Canada critical habitat sf objects
+crit_hab = rbind(USA_crit_hab_sf, CAN_crit_hab_sf)
+
+# plot critical habitats and carcass locations
+ggplot()+
+  geom_raster(data = bath_m , aes(x = x, y = y, fill = depth_m), alpha=0.75) + 
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "black", color = NA) + # add coastline
+  # geom_polygon(data = CAN_crit_hab, aes(x = longitude, y = latitude, fill = critical_habitat), alpha = 0.3) + # add poly
+  geom_sf(data=crit_hab, alpha = 0.5, color=NA, fill='yellow') +
+  geom_point(data = carcass, aes(x = Longitude, y = Latitude, color = Carcass_position), size=2) + 
+  coord_sf(1.3, xlim = lon_bounds, ylim = lat_bounds) + # Crop map edges
+  scale_fill_gradientn(colors=c("black", "navy", "blue4","lightblue"), 
+                       values = scales::rescale(c(-5000, -3000, -300, 0)), # rescale to make 2 different gradients
+                       name="Depth (m)") +
+  ylab("Latitude") + xlab("Longitude") + theme_classic() +
+  ggsave('figures/RW_habitats.pdf', device="pdf", height=5, width=7)
+
+## How many carcass locations occur in critical habitat zones?
+
+
+
+```
+
+
+### Acknowledgements
+
+NEON has a great vector spatial data tutorial for R that will provide a lot more information. This is where the schematics come from in this tutorial:
+https://www.neonscience.org/resources/learning-hub/tutorials/intro-vector-data-r

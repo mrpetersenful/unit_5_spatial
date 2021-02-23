@@ -8,7 +8,8 @@ knitr::opts_chunk$set(fig.width=6, fig.asp = 0.618, collapse=TRUE)
 
 ### Unit 5: Spatial
 #### Lesson 1: bathymetry and chlorophyll rasters
-#### New functions: 
+#### New packages: raster, mapdata, marmap
+#### New functions: raster(), rasterToPoints(), geom_raster(), geom_tile(), map_data(), raster::crop() raster::extent(), marmap::getNOAA.bathy(), geom_polygon(), coord_fixed(), marmap::fortify.bathy(), marmap::as.raster(), geom_contour(), raster::resample(), raster::stack()
 
 ***
 
