@@ -86,7 +86,7 @@ For this lesson, let's download and play with this file `A20021822017212.L3m_MC_
 ```{r, message=FALSE}
 library(tidyverse)
 library(raster)
-library(mapdata)  # map_data
+library(mapdata)  # map_data worldHires coastline
 library(marmap)   # getNOAA.bathy()
 # library(ncdf4)  # also good for reading netCDF files
 ```

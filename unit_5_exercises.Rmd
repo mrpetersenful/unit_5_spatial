@@ -68,4 +68,10 @@ CCB_map
 
 ***
 
+### Exercise 2.1
+
+Take a look at the map we created. How many right whale carcasses were discovered inside of the critical habitats? What might you infer about the efficacy of the critical habitats at protecting right whales? What might you infer about the locations of those critical habitat boundaries?
+
+***
+
 
