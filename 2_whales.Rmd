@@ -9,7 +9,7 @@ knitr::opts_chunk$set(fig.width=6, fig.asp = 0.618, collapse=TRUE)
 ### Unit 5: Spatial
 #### Lesson 2: right whale critical habitats and mortalities
 #### New packages: sf 
-#### New functions: st_read(), st_as_sf(), st_transform(), st_cast(), geom_sf(), coord_sf()
+#### New functions: st_read(), st_as_sf(), st_transform(), st_cast(), geom_sf(), coord
 
 ***
 
@@ -170,7 +170,7 @@ Take a look at the map we created. How many right whale carcasses were discovere
 
 ***
 
-### Acknowledgements
+### Acknowledgements & More Information
 
 NEON has a great vector spatial data tutorial for R that will provide a lot more information. This is where the schematics come from in this tutorial:
 https://www.neonscience.org/resources/learning-hub/tutorials/intro-vector-data-r
