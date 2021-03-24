@@ -52,7 +52,7 @@ The images below demonstrate how satellites collect data based on a fixed arclen
 In this lesson we will download data from the NASA Ocean Biology Processing Group (OBPG). The OBPG creates popular data products like chlorophyll a and sea surface temperature. Here is a list of products available:
 https://oceancolor.gsfc.nasa.gov/atbd/
 
-Most satellite data (including all the data from NASA) if *free* and *publicly available*. To access the data from the OBPG, you need to create a NASA Earth Data Login profile. You may have already done this in the climate unit: 
+Most satellite data (including all the data from NASA) is *free* and *publicly available*. To access the data from the OBPG, you need to create a NASA Earth Data Login profile. You may have already done this in the climate unit: 
 https://urs.earthdata.nasa.gov/
 
 We can go to the Ocean Data Access Portal:
@@ -66,17 +66,17 @@ There you'll see a list of files with names such as A20021822017212.L3m_MC_CHL_c
 
 Let's dismantle the file naming convention here: 
 
-`A`: Satellite sensor (A for the Modis Aqua mission)
-`2002`: start year
-`182`: start Julian date (first day of July)
-`2017`: end year
-`212`: end Julian date (last day of July)
-`.L3m`: Level 3 monthly 
-`MC`: Monthly Climatology
-`CHL`: Chlorophyll suite of products
-`chlor_a`: The specific chlorophyll product (distinct from chlor_ocx which is a legacy algorithm)
-`9km`: resolution; the length of the side of one grid cell
-`.nc`: netCDF file type
+-  `A`: Satellite sensor (A for the Modis Aqua mission)
+-  `2002`: start year
+-  `182`: start Julian date (first day of July)
+-  `2017`: end year
+-  `212`: end Julian date (last day of July)
+-  `.L3m`: Level 3 monthly 
+-  `MC`: Monthly Climatology
+-  `CHL`: Chlorophyll suite of products
+-  `chlor_a`: The specific chlorophyll product (distinct from chlor_ocx which is a legacy algorithm)
+-  `9km`: resolution; the length of the side of one grid cell
+-  `.nc`: netCDF file type
 
 Note: the OBPG is in the process of transitioning naming conventions:
 https://oceancolor.gsfc.nasa.gov/docs/filenaming-convention/

@@ -415,18 +415,30 @@ summary {
 <div id="collecting-plotting-and-manipulating-raster-data" class="section level3">
 <h3>Collecting, plotting and manipulating raster data</h3>
 <p>In this lesson we will download data from the NASA Ocean Biology Processing Group (OBPG). The OBPG creates popular data products like chlorophyll a and sea surface temperature. Here is a list of products available: <a href="https://oceancolor.gsfc.nasa.gov/atbd/" class="uri">https://oceancolor.gsfc.nasa.gov/atbd/</a></p>
-<p>Most satellite data (including all the data from NASA) if <em>free</em> and <em>publicly available</em>. To access the data from the OBPG, you need to create a NASA Earth Data Login profile. You may have already done this in the climate unit: <a href="https://urs.earthdata.nasa.gov/" class="uri">https://urs.earthdata.nasa.gov/</a></p>
+<p>Most satellite data (including all the data from NASA) is <em>free</em> and <em>publicly available</em>. To access the data from the OBPG, you need to create a NASA Earth Data Login profile. You may have already done this in the climate unit: <a href="https://urs.earthdata.nasa.gov/" class="uri">https://urs.earthdata.nasa.gov/</a></p>
 <p>We can go to the Ocean Data Access Portal: <a href="https://oceandata.sci.gsfc.nasa.gov/" class="uri">https://oceandata.sci.gsfc.nasa.gov/</a></p>
 <p>We can collect data from the Modis Aqua mission, which has been running from 2002-present. (If you want to go a bit farther back in time, you can get some of the same products from the SeaWiFS mission which ran from 1997-2010). We’ll grab Modis Aqua L3 Mapped data that provides a monthly climatology of chlorophyll a. So from the Ocean Data Access Portal, click through the directories:</p>
 <p><code>MODIS-Aqua -&gt; Mapped -&gt; Monthly_Climatology -&gt; 9_km -&gt; chlor_a</code></p>
 <p>There you’ll see a list of files with names such as A20021822017212.L3m_MC_CHL_chlor_a_9km.nc</p>
 <p>Let’s dismantle the file naming convention here:</p>
-<p><code>A</code>: Satellite sensor (A for the Modis Aqua mission) <code>2002</code>: start year <code>182</code>: start Julian date (first day of July) <code>2017</code>: end year <code>212</code>: end Julian date (last day of July) <code>.L3m</code>: Level 3 monthly <code>MC</code>: Monthly Climatology <code>CHL</code>: Chlorophyll suite of products <code>chlor_a</code>: The specific chlorophyll product (distinct from chlor_ocx which is a legacy algorithm) <code>9km</code>: resolution; the length of the side of one grid cell <code>.nc</code>: netCDF file type</p>
+<ul>
+<li><code>A</code>: Satellite sensor (A for the Modis Aqua mission)</li>
+<li><code>2002</code>: start year</li>
+<li><code>182</code>: start Julian date (first day of July)</li>
+<li><code>2017</code>: end year</li>
+<li><code>212</code>: end Julian date (last day of July)</li>
+<li><code>.L3m</code>: Level 3 monthly</li>
+<li><code>MC</code>: Monthly Climatology</li>
+<li><code>CHL</code>: Chlorophyll suite of products</li>
+<li><code>chlor_a</code>: The specific chlorophyll product (distinct from chlor_ocx which is a legacy algorithm)</li>
+<li><code>9km</code>: resolution; the length of the side of one grid cell</li>
+<li><code>.nc</code>: netCDF file type</li>
+</ul>
 <p>Note: the OBPG is in the process of transitioning naming conventions: <a href="https://oceancolor.gsfc.nasa.gov/docs/filenaming-convention/" class="uri">https://oceancolor.gsfc.nasa.gov/docs/filenaming-convention/</a></p>
 <p>For this lesson, let’s download and play with this file <code>A20021822017212.L3m_MC_CHL_chlor_a_9km.nc</code>, which is the monthly climatology of chloropphyll a for July (Julian dates 182-212) averaged across the years 2002 - 2017. This provides chlorophyll a data in <span class="math inline">\(mg/m^3\)</span>. This data, and many other products in government DAACs (Distributed Active Archive Centers), comes in a NetCDF file. NetCDF files contain scientific array-type data and associated metadata.</p>
 <pre class="r"><code>library(tidyverse)
 library(raster)
-library(mapdata)  # map_data
+library(mapdata)  # map_data worldHires coastline
 library(marmap)   # getNOAA.bathy()
 # library(ncdf4)  # also good for reading netCDF files</code></pre>
 <p>We can use R’s <code>raster</code> package to read in the NetCDF file and take a look at the metadata. Let’s change the name of the chlorophyll layer because the original name is soooo long and too hard to type. Then we can convert the raster to a data frame because we are already so comfortable working with data frames.</p>
