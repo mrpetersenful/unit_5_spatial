@@ -1,5 +1,5 @@
 ## 22 March 2021
-## Lesson 5.3: Bathymetric chlorophyll
+## Lesson 5.3: Bathymetry and chlorophyll data
 
 ## ----setup, include=FALSE-------------------------------------------------------------------------------------------------------------------------------------------------
 knitr::opts_chunk$set(fig.width=6, fig.asp = 0.618, collapse=TRUE) 
