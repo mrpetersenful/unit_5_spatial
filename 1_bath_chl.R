@@ -260,42 +260,93 @@ bath_m_raw = marmap::getNOAA.bathy(lon1 = lon_bounds[1], lon2 = lon_bounds[2],
                                    ## Here, I'm saying that the resolution default 
                                    ## should be four minutes. 
                              lat1 = lat_bounds[1], lat2 = 47, resolution = 4) 
-class(bath_m_raw)  # "bathy" class (from marmap)
-# convert bathymetry to data frame
+class(bath_m_raw) 
+
+## Now I'm going to convert my bathymetry data into a data frame, and use fortify() 
+## to convert the marmap data from its native bathy class to a data frame for 
+## plotting with ggplot.
 bath_m_df = marmap::fortify.bathy(bath_m_raw) 
 bath_m = bath_m_df %>%
-  mutate(depth_m = ifelse(z>20, NA, z)) %>% # 20m gives us wiggle room from sea level for tides/coastline
+  ## Here, I'm telling the data that if it's closer to coast than 20 m, then that 
+  ## value is NA. 20 m gives us wiggle room for the tides/coastline. 
+  mutate(depth_m = ifelse(z>20, NA, z)) %>% 
   dplyr::select(-z)
+
 head(bath_m)
 summary(bath_m)
 
-# plot raster data
+## Now I want to plot the bathymetry map of the Gulf of Maine. 
 GOM_bath_map = ggplot()+
   geom_raster(data = bath_m , aes(x = x, y = y, fill = depth_m)) + 
-  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "darkgrey", color = NA) + # add coastline; group keeps multipolygon coordinates separated into distinct groups
-  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # Crop map edges
+  ## Adding the coastline; group keeps multipolygon coordinates separated into 
+  ## distinct groups.
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), 
+               fill = "darkgrey", color = NA) + 
+  ## Here I want to crop the map edges.
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + 
+  ## This rescales to make 2 different gradients.
   scale_fill_gradientn(colors=c("black", "darkblue", "lightblue"), 
-                       values = scales::rescale(c(-6000, -300, 0)), # rescale to make 2 different gradients
+                       values = scales::rescale(c(-6000, -300, 0)), 
                        name="Depth (m)") +
   ylab("Lat") + xlab("Lon") + theme_bw() 
 
-GOM_bath_map # print to screen
-ggsave(GOM_bath_map, filename='figures/GOM_bath_raster.pdf', device="pdf", height=5, width=7)
+## Print and save.
+GOM_bath_map
+ggsave(GOM_bath_map, filename='figures/GOM_bath_raster.pdf', device="pdf", 
+       height=5, width=7)
 
 
-## -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+## For bathymetry data, it can be nice to add contour lines to the plot. Take a look 
+## at these maps with and without the underlying colored bathymetry data.
+
 # plot contours
 GOM_bath_map_contours = ggplot()+
-  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-100), size=c(0.25), colour="grey") + # add 100m contour
-  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-200), size=c(0.5), colour="grey") + # add 250m contour
-  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-500), size=c(0.75), colour="grey") + # add 250m contour
-  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "black", color = NA) + # add coastline
-  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # Crop map edges
+  ## Add 100m contour.
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-100), 
+               size=c(0.25), colour="grey") + 
+  ## Add 200m contour.
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-200), 
+               size=c(0.5), colour="grey") +
+  ## Add 500m contour.
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-500), 
+               size=c(0.75), colour="grey") + 
+  ## Add coastline data.
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), 
+               fill = "black", color = NA) + 
+  ## Crop map edges.
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + 
   ylab("Latitude") + xlab("Longitude") + theme_classic()
 
-GOM_bath_map_contours # print to screen
-ggsave(GOM_bath_map_contours, filename='figures/GOM_bath_contours.pdf', device="pdf", height=5, width=7)
+## Print and save. 
+GOM_bath_map_contours 
+ggsave(GOM_bath_map_contours, filename='figures/GOM_bath_contours.pdf', 
+       device="pdf", height=5, width=7)
 
+
+## Exercise 1.1: 
+## Add bathymetric contour lines to the colored bathymetry raster map of the Gulf
+## of Maine. Draw the contours at 50m, 250m, and 1000m depths. Are there any basins
+## in the GOM that go as deep as 1000m?
+
+## First I want to plot the contours. 
+
+GOM_bath_map_contours = ggplot() +
+  geom_raster(data = bath_m, aes(x=x, y=y, fill = depth_m)) +
+  scale_fill_gradientn(colors= c("black", "darkblue", "lightblue"), 
+                       values=scales::rescale(c(-6000, -300, 0)), 
+                       name="Depth (m)") +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-50), 
+               size=c(0.25), colour="black") + 
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-250), 
+               size=c(0.5), colour="black") + 
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-1000), 
+               size=c(0.75), colour="black") + 
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), 
+               fill = "black", color = NA) + 
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + 
+  ylab("Latitude") + xlab("Longitude") + theme_classic()
+
+GOM_bath_map_contours
 
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # The GOM cropped data we made above:
