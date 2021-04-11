@@ -104,7 +104,8 @@ carcass = read.csv('data/RW_carcasses_2017.csv')
 USA_crit_hab = st_read('data/North_Atlantic_Right_Whale_Critical_Habitat','North_Atlantic_Right_Whale_Critical_Habitat') 
 USA_crit_hab
 ## Now we're transforming our CRS to be the same. CRS = "+proj=longlat +datum=WGS84")
-USA_crit_hab_sf = st_transform(USA_crit_hab, crs=4326) #crs="+proj=longlat +datum=WGS84")
+USA_crit_hab_sf = st_transform(USA_crit_hab, crs=4326)#crs="+proj=longlat +datum=WGS84")
+class(USA_crit_hab_sf)
 
 ## To get the Canadian critical habitat boundaries, we read in the series of polygon
 ## points provided in a simple .csv file. These are latitude/longitude coordinates 
@@ -137,6 +138,7 @@ USA_crit_hab_sf = st_transform(USA_crit_hab, crs=4326) #crs="+proj=longlat +datu
 ## http://www.dfo-mpo.gc.ca/species-especes/profiles-profils/rightwhaleNA-baleinenoireAN-eng.html
 CAN_crit_hab = read.csv('data/NARW_canadian_critical_habitat_2017.csv')
 head(CAN_crit_hab)
+class(CAN_crit_hab)
 
 names(CAN_crit_hab)[names(CAN_crit_hab) == "ï..lat"] = "lat"
 
