@@ -348,6 +348,12 @@ GOM_bath_map_contours = ggplot() +
 
 GOM_bath_map_contours
 
+
+### Combine bathymetry and chlorophyll rasters
+
+## 
+
+
 ## -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # The GOM cropped data we made above:
 class(chl_GOM_raster)
