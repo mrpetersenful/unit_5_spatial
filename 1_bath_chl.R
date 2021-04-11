@@ -351,73 +351,143 @@ GOM_bath_map_contours
 
 ### Combine bathymetry and chlorophyll rasters
 
-## 
+## We have downloaded and created gorgeous maps with NASA chlorophyll a data and
+## NOAA bathymetry data. Now we can layer those two datasets, which will enable 
+## us to investigate the relationship between chlorophyll and bathymetry. We can 
+## do this by putting both datasets into the raster format, and then resampling 
+## them to have the same Coordinate Reference System, extent, origin, and resolution.
+## Then the cells (pixels) of our chlorophyll raster grid will line up perfectly 
+## with the cells of our bathymetry raster grid. We can stack the raster layers on
+## top of each other, and then it's simple to do raster math, run models, or simply
+## convert them back into a data frame to use our favorite dplyr functions. 
 
-
-## -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# The GOM cropped data we made above:
+## The GOM cropped data we made above:
 class(chl_GOM_raster)
-class(bath_m_raw)  # "bathy" class (from marmap)
+class(bath_m_raw)  
 
-# convert bathymetry to raster
+## So we have two different data types, raster and bathy. We need to make them both
+## raster. 
+
 bath_m_raster = marmap::as.raster(bath_m_raw)
 
-# Note the CRS is the same for both rasters WGS84
-# Extent is slightly different 
-# bath_m resolution is higher than chl resolution
+## Note that the CRS is the same for both rasters (WGS84) -- they're both American
+## data sets. 
 chl_GOM_raster
 bath_m_raster
 
-# Rename the bathymetry raster layer so its easier to work with
+## Rename the bathymetry raster layer so its easier to work with.
 names(bath_m_raster) = "bath_m"
 
-# resample bath_m to match chl_a
-bath_layer_chl_dims = raster::resample(bath_m_raster, chl_GOM_raster) # resamples r1 extent, origin and resolution to that of r2
+## Now I want to resample the bath_m to match chl_a. This resamples the raster 1
+## extent, origin, and resolution to that of raster 2.
+bath_layer_chl_dims = raster::resample(bath_m_raster, chl_GOM_raster)
 
-# If CRS didn't match up, we'd also project the bath_m raster to match the CRS of the chl raster:
+## If the CRS didn't match up, we'd also project the bath_m raster to match the CRS
+## of the chl raster using the following line of code: 
+
 # bath_layer_chl_dims_proj = raster::projectRaster(bath_m_raster, crs = crs(chl_GOM_raster))
 
-# now that extent, origin, resolution and projection match, create raster stack
+
+## Now that our extent, origin, resolution, and projection match, create the raster
+## stack. 
 raster_stack = stack(chl_GOM_raster, bath_layer_chl_dims)
 raster_stack
-plot(raster_stack) # double check everything is oriented correctly
+
+## We want to double check that everything is oriented correctly. 
+plot(raster_stack) 
+
+## Now that the rasters are all matched up, we can easily do science with them. 
+## Converting the raster stack into a data frame (now that all of the spatial chores
+## have been taken care of) allows us to use dplyr tools. 
 
 
-## -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# convert to data frame
+## Convert to a data frame. 
 stack_df = data.frame( raster::rasterToPoints(raster_stack))
 head(stack_df)
 summary(stack_df)
 dim(stack_df)
 
-# O'Reilly et al. 2019
-# chl_a benchmarks for oligo- meso- and eutrophic ocean waters derived from SeaWiFS data
-oligo_chl_a = 0.1 # chl_a < 0.1 mg/m^3
-eutro_chl_a = 1.67 # chl_a > 1.67 mg/m^3
+## From O'Reilly et al. 2019, there are chlorophyll a benchmarks for oligo-, meso-
+## and eutrophic ocean waters derived from SeaWiFS data. When chlorophyll a is less
+## than 0.1 mg/m^3, it's oligotrophic, when it's greater than 1.67 mg/m^3, it's 
+## eutrophic. 
 
+
+oligo_chl_a = 0.1 
+eutro_chl_a = 1.67 
+
+## Let's add another column to our data to designate trophic status. 
 stack_df = stack_df %>%
   mutate(trophic_index = case_when(chl_a < oligo_chl_a ~ "oligotrophic",
                                    chl_a > oligo_chl_a & chl_a < eutro_chl_a ~ "mesotrophic",
                                    chl_a > eutro_chl_a ~ "eutrophic")) %>%
   mutate(trophic_index = as.factor(trophic_index))
 
-# What portion of our area of interest is classified as oligotrophic, mesotrophic and eutrophic?
-table(stack_df$trophic_index)  # no oligotrophic waters in GOM region
+## What portion of our area of interest is classified as oligotrophic, mesotrophic
+## and eutrophic?
+
+table(stack_df$trophic_index)  
+## This shows that we don't have any oligotrophic regions in the Gulf of Maine. 
+
 n_eutro = dim(stack_df %>% filter(trophic_index == "eutrophic"))[1]
 n_meso = dim(stack_df %>% filter(trophic_index == "mesotrophic"))[1]
 pct_eutro = n_eutro / (n_eutro + n_meso)
 pct_meso = n_meso / (n_eutro + n_meso)
 
-# Plot histogram of bathymetric depth (m) for each trophic index
+## Now, let's plot a histogram of bathymetric depth (m) for each trophic index.
 ggplot() +
   geom_histogram(aes(x=bath_m), data=stack_df %>% filter(!is.na(trophic_index))) +
   facet_wrap(~trophic_index)
 
-# plot trophic raster data
+## Now, I'm going to plot trophic raster data.
 trophic_map = ggplot()+
   geom_raster(data = stack_df, aes(x = x, y = y, fill = trophic_index)) + 
-  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "darkgrey", color = NA) + # add coastline; group keeps multipolygon coordinates separated into distinct groups
-  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # Crop map edges
+  ## Adding in coastline; group keeps multipolygon coordinates separated into 
+  ## distinct groups. 
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), 
+               fill = "darkgrey", color = NA) + 
+  ## Cropping the map edges.
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) +
   ylab("Lat") + xlab("Lon") + theme_bw() 
 trophic_map
 
+## So the eutrophic waters in the GOM (for July climatology) are the shallow waters
+## near the coast. The rest of the Gulf of Maine is mesotrophic, and there are no
+## oligotrophic areas in the GOM. 
+
+## Exercise 1.2: 
+## Using the raster stack we created earlier, crop out Cape Cod Bay. Turn this 
+## into a data frame. How does the mean chlorophyll a concentration at depths between
+## 0 and -50m compare to the mean chlorophyll concentration between -50 and -100m?
+
+CCB_lon = c(-70.8, -69.8)
+CCB_lat = c(41.6, 42.2)
+
+CCB_raster = crop(raster_stack, extent(c(CCB_lon, CCB_lat)))
+CCB_df = data.frame(raster::rasterToPoints(CCB_raster))
+
+ggplot(aes(x=chl_a), data=CCB_df) +
+  geom_histogram()
+
+## Now let's find the mean chl a between depths of 0 and 50m. 
+CCB_df %>%
+  filter(bath_m <=0, bath_m > -50) %>%
+  summarize(chl = mean(chl_a, na.rm=TRUE))
+## Our chl a between 0 and 50m is 3.23 mg/m^3.
+
+CCB_df %>%
+  filter(bath_m <= -50, bath_m > -100) %>%
+  summarize(chl = mean(chl_a, na.rm=TRUE))
+## Our chl a between 50 and 100m is 1.51 mg/m^3.
+
+## Now let's plot the raster data. 
+CCB_map = ggplot() +
+  geom_raster(data = CCB_df, aes(x=x, y=y, fill = bath_m)) +
+  ## Adding coastline; group keeps multipolygon coordinates separated into distinct
+  ## groups.
+  geom_polygon(data= world_map, aes(x=long, y=lat, group=group), fill = "darkgrey",
+               color=NA) +
+  ## Croup map edges.
+  coord_fixed(1.3, xlim = CCB_lon, ylim = CCB_lat, expand=FALSE) +
+  ylab("Lat") + xlab("Lon") + theme_bw()
+CCB_map
