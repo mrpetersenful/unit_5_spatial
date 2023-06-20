@@ -113,7 +113,7 @@ head(chl_df)
 
 # See range of data to set good limits for color palette
 hist(log10(chl_df$chl_a))
-cols = rainbow(7, rev=TRUE)[-1] # reverse rainbow, drops the first color (purple)
+cols = rainbow(7, rev=TRUE)[-1] # reverse rainbow color hex codes, drops the first color (purple); 
 
 # Plot global chl
 # geom_raster() plots faster, geom_tile() is slightly more precise
@@ -152,7 +152,7 @@ world_map = map_data("worldHires")
 GOM_chl_map = ggplot() +
   geom_raster(data = chl_GOM_df , aes(x = x, y = y, fill = log10(chl_a))) + # geom_tile() gives more precise lines
   geom_polygon(aes(x=long, y = lat, group = group), fill = "darkgrey", data=world_map) + # add coastline
-  coord_fixed(ratio=1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # crop map
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # crop map; 1.3 y/x aspect ratio (may want to use higher at the poles; use 1 near the equator)
   ggtitle("GOM chl_a July climatology") +
   theme_bw() +
   xlab("Longitude") + ylab("Latitude") +
@@ -197,7 +197,7 @@ GOM_bath_map = ggplot()+
   geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "darkgrey", color = NA) + # add coastline; group keeps multipolygon coordinates separated into distinct groups
   coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # Crop map edges
   scale_fill_gradientn(colors=c("black", "darkblue", "lightblue"), 
-                       values = scales::rescale(c(-6000, -300, 0)), # rescale to make 2 different gradients
+                       values = scales::rescale(c(-6000, -300, 0)), # rescale to make 2 different gradients (rescale function from scales package in tidyverse)
                        name="Depth (m)") +
   ylab("Lat") + xlab("Lon") + theme_bw() 
 
@@ -297,7 +297,7 @@ ggplot() +
 # plot trophic raster data
 trophic_map = ggplot()+
   geom_raster(data = stack_df, aes(x = x, y = y, fill = trophic_index)) + 
-  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "darkgrey", color = NA) + # add coastline; group keeps multipolygon coordinates separated into distinct groups
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group)) + # add coastline; group keeps multipolygon coordinates separated into distinct groups
   coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + # Crop map edges
   ylab("Lat") + xlab("Lon") + theme_bw() 
 trophic_map
