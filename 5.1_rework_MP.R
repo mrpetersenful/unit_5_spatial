@@ -225,5 +225,192 @@ ggsave(GOM_bath_map, filename='figures/GOM_bath_raster.pdf', device="pdf", heigh
 # For bathymetry data, it can be nice to add contour lines to the plot. Take a look at these contour maps with and without the underlying colored bathymetry data:
 
 # Plot contours
+GOM_bath_map_contours = ggplot() +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-100), size=c(0.25), colour="grey") +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-200), size=c(0.5), colour="grey") +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-500), size=c(0.75), colour="grey") +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "black", color = NA) +
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) +
+  ylab("Latitude") + xlab("Longitude") + theme_classic()
+dev.new()
+GOM_bath_map_contours
+
+ggsave(GOM_bath_map_contours, filename='figures/GOM_bath_contours.pdf', device="pdf", height=5, width=7)
+
+
+## Exercise 5.1: Add bathymetric contour lines to the colored bathymetry raster map of the Gulf of Maine. Draw the contours at 50m, 250m and 1000m depths. Are there any basins in the GOM that go as deep as 1000m?
+
+GOM_bath_map_contours_Ex5_1 = ggplot() + 
+  geom_raster(data = bath_m, aes(x=x, y=y, fill=depth_m)) +
+  scale_fill_gradientn(colors=c("black", "darkblue", "lightblue"), 
+                       values = scales::rescale(c(-6000, -300, 0)),
+                       name="Depth (m)") +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-50), size=c(0.25), colour="black") +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-250), size=c(0.5), colour="black") +
+  geom_contour(data = bath_m, aes(x=x, y=y, z=depth_m), breaks=c(-1000), size=c(0.75), colour="black") +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "black", color = NA) +
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) + 
+  ylab("Latitude") + xlab("Longitude") + theme_classic()
+dev.new()
+GOM_bath_map_contours_Ex5_1
+
+
+## Combine bathymetry and chlorophyll rasters
+
+# We have downloaded and created gorgeous maps with NASA chlorophyll a data and NOAA bathymetry data. Now we can layer those two datasets, which will enable us to investigate the relationship between chlorophyll and bathymetry. We can do this by putting both datasets into the raster format, and then resampling them to have the same Coordinate Reference System, extent, origin, and resolution. Then the cells (pixels) of our chlorophyll raster grid will line up perfectly with the cells of our bathymetry raster grid. We can stack the raster layers on top of each other, and then it's simple to do raster math, run models, or simply convert them back into a data frame to use our favorite dplyr functions. 
+
+# The GOM cropped data we made above:
+class(chl_GOM_raster)
+class(bath_m_raw)
+
+# Convert bathymetry to raster
+bath_m_raster = marmap::as.raster(bath_m_raw)
+
+# Note the CRS is the same for both rasters WGS84
+# Extent is slightly different
+# bath_m resolution is higher than chl resolution
+
+chl_GOM_raster
+# class      : RasterLayer 
+# dimensions : 96, 120, 11520  (nrow, ncol, ncell)
+# resolution : 0.08333334, 0.08333334  (x, y)
+# extent     : -71.99999, -61.99999, 39, 47  (xmin, xmax, ymin, ymax)
+# crs        : +proj=longlat +datum=WGS84 +no_defs 
+# source     : memory
+# names      : chl_a 
+# values     : 0.1321369, 58.15591  (min, max)
+
+bath_m_raster
+# class      : RasterLayer 
+# dimensions : 120, 150, 18000  (nrow, ncol, ncell)
+# resolution : 0.06666667, 0.06666667  (x, y)
+# extent     : -72, -62, 39, 47  (xmin, xmax, ymin, ymax)
+# crs        : +proj=longlat +datum=WGS84 +no_defs 
+# source     : memory
+# names      : layer 
+# values     : -5074.11, 1321.325  (min, max)
+
+# Rename the bathymetry raster layer so its easier to work with
+names(bath_m_raster) = "bath_m"
+
+# Resample bath_m to match chl_a
+bath_layer_chl_dims = raster::resample(bath_m_raster, chl_GOM_raster)
+# Resampled r1 extent, origin, and resolution to that of r2
+
+# If CRS didn't match up, we'd also project the bath_m raster to match the CRS of the chl raster:
+# bath_layer_chl_dims_proj = raster::projectRaster(bath_m_raster, crs = crs(chl_GOM_raster))
+
+# Now that extent, origin, resolution, and projection match, create raster stack
+raster_stack = stack(chl_GOM_raster, bath_layer_chl_dims)
+
+raster_stack
+# class      : RasterStack 
+# dimensions : 96, 120, 11520, 2  (nrow, ncol, ncell, nlayers)
+# resolution : 0.08333334, 0.08333334  (x, y)
+# extent     : -71.99999, -61.99999, 39, 47  (xmin, xmax, ymin, ymax)
+# crs        : +proj=longlat +datum=WGS84 +no_defs 
+# names      :         chl_a,        bath_m 
+# min values :     0.1321369, -5071.0059890 
+# max values :      58.15591,    1224.67189 
+
+# Double-check everything is oriented correctly
+dev.new()
+plot(raster_stack)
+
+
+# Now that the rasters are all matched up, we can easily do science with them. Converting the raster stack into a data frame (now that all of the spatial chores have been taken care of) allows us to use dplyr tools:
+
+# Convert to data frame
+stack_df = data.frame(raster::rasterToPoints(raster_stack))
+head(stack_df)
+summary(stack_df)
+dim(stack_df)
+
+# O'Reilly et al. 2019
+# chl_a benchmarks for oligo-, meso-, and eutrophic ocean waters derived from SeaWiFS data
+oligo_chl_a = 0.1   # chl_a < 0.1 mg/m^3
+eutro_chl_a = 1.67   # chl_a > 1.67 mg/m^3
+
+stack_df = stack_df %>% 
+  mutate(trophic_index = case_when(chl_a < oligo_chl_a ~ "oligotrophic", 
+                                   chl_a > oligo_chl_a & chl_a < eutro_chl_a ~ "mesotrophic",
+                                   chl_a > eutro_chl_a ~ "eutrophic")) %>%
+  mutate(trophic_index = as.factor(trophic_index))
+
+# What portion of our area of interest is classified as oligotrophic, mesotrophic, and eutrophic? 
+table(stack_df$trophic_index)
+# eutrophic mesotrophic 
+#  1100        6539 
+
+n_eutro = dim(stack_df %>% filter(trophic_index == "eutrophic"))[1]
+n_meso = dim(stack_df %>% filter(trophic_index == "mesotrophic"))[1]
+pct_eutro = n_eutro / (n_eutro + n_meso)
+pct_meso = n_meso / (n_eutro + n_meso)
+
+# Plot histogram of bathymetric depth (m) for each trophic index
+dev.new()
+ggplot() + 
+  geom_histogram(aes(x=bath_m), data=stack_df %>% filter(!is.na(trophic_index))) + 
+  facet_wrap(~trophic_index)
+
+# Plot trophic raster data
+trophic_map = ggplot() + 
+  geom_raster(data = stack_df, aes(x = x, y = y, fill = trophic_index)) +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group)) + 
+  coord_fixed(1.3, xlim = lon_bounds, ylim = lat_bounds, expand=FALSE) +
+  ylab("Lat") + xlab("Lon") + theme_bw()
+dev.new()
+trophic_map
+
+
+
+# So the eutrophic waters in the GOM (for July climatology) are the shallow waters near the coast. The rest of the GOM is mesotrophic, and there are no oligotrophic areas in the GOM. If you don't think this is cool, we might not be able to be friends. 
+
+
+## Exercise 5.2: Using the raster stack we created earlier, crop out Cape Cod Bay. Turn this into a data frame. How does the mean chlorophyll a concentration at depths between 0 and -50m compare to the mean chlorophyll concentration between -50 and -100m?
+
+CCB_lon = c(-70.8, -69.8)
+CCB_lat = c(41.6, 42.2)
+
+CCB_raster = crop(raster_stack, extent(c(CCB_lon, CCB_lat)))
+CCB_df = data.frame(raster::rasterToPoints(CCB_raster))
+
+dev.new()
+ggplot(aes(x=chl_a), data=CCB_df) + 
+  geom_histogram()
+
+# Find mean chl_a between depths of 0 and 50m
+CCB_df %>%
+  filter(bath_m <=0, bath_m > -50) %>% 
+  summarize(chl = mean(chl_a, na.rm=TRUE))
+
+# Find mean chl_a between depths of 50 and 100m
+CCB_df %>% 
+  filter(bath_m <= -50, bath_m > -100) %>%
+  summarize(chl=mean(chl_a, na.rm=TRUE))
+
+CCB_map = ggplot() + 
+  geom_raster(data = CCB_df, aes(x = x, y = y, fill = bath_m)) +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "darkgrey", color=NA) +
+  coord_fixed(1.3, xlim = CCB_lon, ylim = CCB_lat, expand=FALSE) + 
+  ylab("Lat") + xlab("Lon") + theme_bw()
+dev.new()
+CCB_map
+
+
+## Acknowledgments
+
+# NEON has a great raster tutorial for R that will provide a lot more information. This is where the raster schematics come from in this tutorial: 
+
+# https://www.neonscience.org/resources/learning-hub/tutorials/raster-data-r
+
+
+
+
+
+
+
+
+
 
 
